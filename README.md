@@ -1,0 +1,4 @@
+poker-calc
+==========
+
+Poker Calculator
