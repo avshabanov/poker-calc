@@ -1,4 +1,4 @@
-package com.alexshabanov.poker.model;
+package com.alexshabanov.cards.model;
 
 /**
  * Represents a card's rank.

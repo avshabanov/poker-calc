@@ -1,6 +1,6 @@
 package com.alexshabanov.poker.service.support;
 
-import com.alexshabanov.poker.model.util.CodeUtil;
+import com.alexshabanov.cards.util.EncodeUtil;
 import com.alexshabanov.poker.service.DealerService;
 
 import java.security.SecureRandom;
@@ -31,7 +31,7 @@ public final class DefaultDealerService implements DealerService {
 
     @Override
     public List<Integer> deal() {
-        final Integer[] cards = new Integer[CodeUtil.MAX_CARD_CODE];
+        final Integer[] cards = new Integer[EncodeUtil.MAX_CARD_CODE];
 
         // initial disposition
         for (int i = 0; i < cards.length; ++i) {

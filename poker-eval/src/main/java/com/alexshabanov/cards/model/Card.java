@@ -1,6 +1,6 @@
-package com.alexshabanov.poker.model;
+package com.alexshabanov.cards.model;
 
-import com.alexshabanov.poker.model.util.PrintUtil;
+import com.alexshabanov.cards.util.PrintUtil;
 
 /**
  * Represents a single card.

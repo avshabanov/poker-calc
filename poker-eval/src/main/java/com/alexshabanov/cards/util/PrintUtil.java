@@ -1,8 +1,8 @@
-package com.alexshabanov.poker.model.util;
+package com.alexshabanov.cards.util;
 
-import com.alexshabanov.poker.model.Card;
-import com.alexshabanov.poker.model.Rank;
-import com.alexshabanov.poker.model.Suit;
+import com.alexshabanov.cards.model.Card;
+import com.alexshabanov.cards.model.Rank;
+import com.alexshabanov.cards.model.Suit;
 
 /**
  * Represents printing utility.
