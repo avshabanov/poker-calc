@@ -18,7 +18,8 @@ import java.util.List;
 public final class HandUtil {
     private HandUtil() {}
 
-    public static int STRAIGHT_FLUSH_HAND_SIZE = 5;
+    public static final int STRAIGHT_FLUSH_HAND_SIZE = 5;
+    public static final int FOUR_OF_A_KIND_HAND_SIZE = 4;
 
     /**
      * User defined callback used in {@see #iterate} method.
@@ -27,6 +28,8 @@ public final class HandUtil {
 
         /**
          * Processes combination of cards.
+         * The processing function may change and/or safely save the given card codes since the caller party
+         * SHALL guarantee that it will no longer access the provided card code list.
          *
          * @param cardCodes Combination of cards.
          * @return True, if the execution shall stop, false otherwise.
@@ -54,7 +57,7 @@ public final class HandUtil {
         final CardCallback callback;
         final int[] positions;
 
-        private IterationContext(CardCallback callback, List<Integer> cardIndexes, int handCardsLength) {
+        public IterationContext(CardCallback callback, List<Integer> cardIndexes, int handCardsLength) {
             this.positions = new int[handCardsLength];
             this.callback = callback;
             this.cardIndexes = cardIndexes;
@@ -91,6 +94,8 @@ public final class HandUtil {
         void setHandCode(List<Integer> combinationCardCodes);
         void setHandRank(HandRank handRank);
         void setHandValue(int value);
+
+        //void addHand();
     }
 
     public static abstract class SimpleCombinationSink implements CombinationSink {
@@ -128,7 +133,7 @@ public final class HandUtil {
      * Checks whether the given combination is the straight flush.
      *
      * @param sourceCardCodes   Source cards to be checked, 7 cards in Texas Hold'em.
-     *                          First two cards are the player's cards, next five - cards on the table.
+     *                          First two cards should be the player's cards, next five - cards on the table.
      * @param combinationSink   User-defined callback that is invoked when the searched combination is found
      *                          If combination sink is invoked, the method unconditionally returns true.
      * @return True, if the straight flush combination has been found in the given cards.
@@ -177,13 +182,35 @@ public final class HandUtil {
                     cards.add(ace);
                 }
                 combinationSink.setHandCode(EncodeUtil.toCodes(cards));
-
                 combinationSink.setHandRank(HandRank.STRAIGHT_FLUSH);
-                combinationSink.setHandValue(-1);
+                combinationSink.setHandValue(-1); // TODO: hand value
 
                 return true;
             }
         }, STRAIGHT_FLUSH_HAND_SIZE);
+    }
 
+    public static boolean maybeFourOfAKind(List<Integer> sourceCardCodes, final CombinationSink combinationSink) {
+        return iterate(sourceCardCodes, new CardCallback() {
+            @Override
+            public boolean process(List<Integer> cardCodes) {
+                Rank rank = null;
+                for (final Integer cardCode : cardCodes) {
+                    final Rank thisRank = EncodeUtil.rankFromCode(cardCode);
+                    if (rank == null) {
+                        rank = thisRank;
+                    } else if (rank != thisRank) {
+                        return false;
+                    }
+                }
+
+                // of, this is the four of a kind
+                combinationSink.setHandCode(cardCodes);
+                combinationSink.setHandRank(HandRank.FOUR_OF_A_KIND);
+                combinationSink.setHandValue(-1); // TODO: hand value
+
+                return true; // the followup search does not make any sense
+            }
+        }, FOUR_OF_A_KIND_HAND_SIZE);
     }
 }

@@ -156,4 +156,19 @@ public final class HandUtilTest {
             assertEquals(ReaderUtil.cardsFromLatin1("Ts Js Qs Ks As"), EncodeUtil.fromCodes(combinationCodes));
         }
     }
+
+    @Test
+    public void testPositiveFourOfAKind() {
+        final List<Integer> cardCodes = EncodeUtil.toCodes(ReaderUtil.cardsFromLatin1("Qd 9h Qs Ac Qc Tc Qh"));
+        final List<Integer> combinationCodes = new ArrayList<Integer>();
+        assertTrue(HandUtil.maybeFourOfAKind(cardCodes, new HandUtil.SimpleCombinationSink() {
+            @Override
+            public void setHandCode(List<Integer> combinationCardCodes) {
+                assertEquals(0, combinationCodes.size());
+                combinationCodes.addAll(combinationCardCodes);
+            }
+        }));
+
+        assertEquals(ReaderUtil.cardsFromLatin1("Qd Qs Qc Qh"), EncodeUtil.fromCodes(combinationCodes));
+    }
 }

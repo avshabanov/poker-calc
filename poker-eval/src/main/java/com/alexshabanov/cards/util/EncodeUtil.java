@@ -18,6 +18,19 @@ public final class EncodeUtil {
 
     public static final int MAX_CARD_CODE = Suit.values().length * Rank.values().length;
 
+    public static Rank rankFromCode(int code) {
+        final Rank[] ranks = Rank.values();
+        final int suitId = code / ranks.length;
+        final int rankId = code - suitId * ranks.length;
+        return ranks[rankId];
+    }
+
+    public static Suit suitFromCode(int code) {
+        final Rank[] ranks = Rank.values();
+        final int suitId = code / ranks.length;
+        return Suit.values()[suitId];
+    }
+
     public static Card fromCode(int code) {
         if (code < 0 || code >= MAX_CARD_CODE) {
             throw new IllegalArgumentException("Illegal card code: " + code + ", expected to be between 0 " +
