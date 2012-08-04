@@ -5,7 +5,6 @@ import com.alexshabanov.cards.model.Rank;
 import com.alexshabanov.cards.model.Suit;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -39,10 +38,18 @@ public final class EncodeUtil {
             result.add(fromCode(code));
         }
 
-        return Collections.unmodifiableList(result);
+        return result;
     }
 
     public static int toCode(Card card) {
         return card.getSuit().ordinal() * Rank.values().length + card.getRank().ordinal();
+    }
+
+    public static List<Integer> toCodes(List<Card> cards) {
+        final List<Integer> result = new ArrayList<Integer>(cards.size());
+        for (final Card card : cards) {
+            result.add(toCode(card));
+        }
+        return result;
     }
 }

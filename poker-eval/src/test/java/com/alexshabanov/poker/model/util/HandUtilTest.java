@@ -1,11 +1,11 @@
 package com.alexshabanov.poker.model.util;
 
+import com.alexshabanov.cards.model.Card;
+import com.alexshabanov.cards.util.EncodeUtil;
+import com.alexshabanov.cards.util.ReaderUtil;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -22,7 +22,7 @@ public final class HandUtilTest {
             @Override
             public boolean process(List<Integer> cards) {
                 assertTrue(actualCombinations.add(cards));
-                return true;
+                return false;
             }
         }, headCombinationSize);
 
@@ -62,5 +62,98 @@ public final class HandUtilTest {
     public void testIteration4() {
         verifyCombinations(4,
                 Arrays.asList(0, 1, 2, 3));
+    }
+
+    @Test
+    public void testStop1() {
+        final Set<List<Integer>> actualCombinations = new HashSet<List<Integer>>();
+
+        HandUtil.iterate(cards, new HandUtil.CardCallback() {
+            @Override
+            public boolean process(List<Integer> cards) {
+                assertTrue(actualCombinations.add(cards));
+                return actualCombinations.size() > 1;
+            }
+        }, 1);
+
+        final List[] expected = new List[] {Arrays.asList(0), Arrays.asList(1)};
+        assertEquals(new HashSet<List>(Arrays.<List>asList(expected)), actualCombinations);
+    }
+
+    @Test
+    public void testStop2() {
+        final Set<List<Integer>> actualCombinations = new HashSet<List<Integer>>();
+
+        HandUtil.iterate(cards, new HandUtil.CardCallback() {
+            @Override
+            public boolean process(List<Integer> cards) {
+                assertTrue(actualCombinations.add(cards));
+                return actualCombinations.size() > 2;
+            }
+        }, 1);
+
+        final List[] expected = new List[] {Arrays.asList(0), Arrays.asList(1), Arrays.asList(2)};
+        assertEquals(new HashSet<List>(Arrays.<List>asList(expected)), actualCombinations);
+    }
+
+    @Test
+    public void testStraightComparator() {
+        {
+            final List<Card> sorted = new ArrayList<Card>(ReaderUtil.cardsFromLatin1("Ac Ad Ah As"));
+            Collections.sort(sorted, new HandUtil.StraightCardsComparator());
+            assertEquals(ReaderUtil.cardsFromLatin1("As Ah Ad Ac"), sorted);
+        }
+
+        {
+            final List<Card> sorted = new ArrayList<Card>(ReaderUtil.cardsFromLatin1("2d Kh Jh 8h"));
+            Collections.sort(sorted, new HandUtil.StraightCardsComparator());
+            assertEquals(ReaderUtil.cardsFromLatin1("8h Jh Kh 2d"), sorted);
+        }
+    }
+
+    @Test
+    public void testPositiveStraightFlush() {
+        {
+            final List<Integer> cardCodes = EncodeUtil.toCodes(ReaderUtil.cardsFromLatin1("8s 9h Qh Th Js Jh Kh"));
+            final List<Integer> combinationCodes = new ArrayList<Integer>();
+            assertTrue(HandUtil.maybeStraightFlush(cardCodes, new HandUtil.SimpleCombinationSink() {
+                @Override
+                public void setHandCode(List<Integer> combinationCardCodes) {
+                    assertEquals(0, combinationCodes.size());
+                    combinationCodes.addAll(combinationCardCodes);
+                }
+            }));
+
+            assertEquals(ReaderUtil.cardsFromLatin1("9h Th Jh Qh Kh"), EncodeUtil.fromCodes(combinationCodes));
+        }
+
+        {
+            final List<Integer> cardCodes = EncodeUtil.toCodes(ReaderUtil.cardsFromLatin1("2h 3c Ac Kd 2c 4c 5c"));
+            final List<Integer> combinationCodes = new ArrayList<Integer>();
+            assertTrue(HandUtil.maybeStraightFlush(cardCodes, new HandUtil.SimpleCombinationSink() {
+                @Override
+                public void setHandCode(List<Integer> combinationCardCodes) {
+                    assertEquals(0, combinationCodes.size());
+                    combinationCodes.addAll(combinationCardCodes);
+                }
+            }));
+
+            assertEquals(ReaderUtil.cardsFromLatin1("Ac 2c 3c 4c 5c"), EncodeUtil.fromCodes(combinationCodes));
+        }
+
+        // royal flush
+        {
+            final List<Integer> cardCodes = EncodeUtil.toCodes(ReaderUtil.cardsFromLatin1("2s As Ks 7d Js Qs Ts"));
+            final List<Integer> combinationCodes = new ArrayList<Integer>();
+            assertTrue(HandUtil.maybeStraightFlush(cardCodes, new HandUtil.SimpleCombinationSink() {
+                @Override
+                public void setHandCode(List<Integer> combinationCardCodes) {
+                    assertEquals(0, combinationCodes.size());
+                    combinationCodes.addAll(combinationCardCodes);
+                }
+            }));
+
+            assertEquals(ReaderUtil.cardsFromLatin1("Ts Js Qs Ks As"), EncodeUtil.fromCodes(combinationCodes));
+        }
     }
 }

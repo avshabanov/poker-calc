@@ -4,7 +4,7 @@ package com.alexshabanov.poker.model;
  * All the possible hand combinations.
  */
 public enum HandRank {
-    STRAIGHT_FLUSH,
+    STRAIGHT_FLUSH, // includes royal flush
     FOUR_OF_A_KIND,
     FULL_HOUSE,
     FLUSH,
