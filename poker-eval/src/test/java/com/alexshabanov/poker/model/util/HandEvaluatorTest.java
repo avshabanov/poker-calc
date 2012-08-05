@@ -64,17 +64,33 @@ public final class HandEvaluatorTest {
 
     @Test
     public void testMultipleStraightFlushes() {
-        final List<Card> sourceCards = ReaderUtil.cardsFromLatin1("3d 4d 5d 6d 7d 8d 9d");
-        final List<Card> combinationCards = new ArrayList<Card>();
-        assertTrue(HandEvaluator.maybeStraightFlush(sourceCards, new SimpleHandCombinationSink() {
-            @Override
-            public void setBestHand(Hand hand) {
-                assertEquals(0, combinationCards.size());
-                combinationCards.addAll(hand.getCards());
-            }
-        }));
+        {
+            final List<Card> sourceCards = ReaderUtil.cardsFromLatin1("3d 4d 5d 6d 7d 8d 9d");
+            final List<Card> combinationCards = new ArrayList<Card>();
+            assertTrue(HandEvaluator.maybeStraightFlush(sourceCards, new SimpleHandCombinationSink() {
+                @Override
+                public void setBestHand(Hand hand) {
+                    assertEquals(0, combinationCards.size());
+                    combinationCards.addAll(hand.getCards());
+                }
+            }));
 
-        assertEquals(ReaderUtil.cardsFromLatin1("5d 6d 7d 8d 9d"), combinationCards);
+            assertEquals(ReaderUtil.cardsFromLatin1("5d 6d 7d 8d 9d"), combinationCards);
+        }
+
+        {
+            final List<Card> sourceCards = ReaderUtil.cardsFromLatin1("3d 4d 5d 6d 7d 9d 8d"); // try w/transposed cards
+            final List<Card> combinationCards = new ArrayList<Card>();
+            assertTrue(HandEvaluator.maybeStraightFlush(sourceCards, new SimpleHandCombinationSink() {
+                @Override
+                public void setBestHand(Hand hand) {
+                    assertEquals(0, combinationCards.size());
+                    combinationCards.addAll(hand.getCards());
+                }
+            }));
+
+            assertEquals(ReaderUtil.cardsFromLatin1("5d 6d 7d 8d 9d"), combinationCards);
+        }
     }
 
     @Test
@@ -90,5 +106,23 @@ public final class HandEvaluatorTest {
         }));
 
         assertEquals(ReaderUtil.cardsFromLatin1("Qd Qs Qc Qh"), combinationCards);
+    }
+
+    @Test
+    public void testPositiveFullHouse() {
+        final List<Card> sourceCards = ReaderUtil.cardsFromLatin1("Qd 2h Qs 2c Qc Tc Th");
+        final List<Card> combinationCards = new ArrayList<Card>();
+        assertTrue(HandEvaluator.maybeFullHouse(sourceCards, new SimpleHandCombinationSink() {
+            @Override
+            public void setBestHand(Hand hand) {
+                assertEquals(0, combinationCards.size());
+                combinationCards.addAll(hand.getCards());
+            }
+        }));
+
+        // NB: this heavily relies that sort function does not change the order!
+        // TODO: this test may fail, so that the cards combination might differ, e.g. may be "Th Tc Qs Qd Qc" instead of
+        // given one below
+        assertEquals(ReaderUtil.cardsFromLatin1("Tc Th Qd Qs Qc"), combinationCards);
     }
 }

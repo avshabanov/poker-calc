@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Performs card combinations.
+ * Provides the prospective clients with the iteration capabilities over the possible card combination space.
  */
 public final class CardCombinator {
 
