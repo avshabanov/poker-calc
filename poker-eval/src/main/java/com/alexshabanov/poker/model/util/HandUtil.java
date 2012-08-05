@@ -102,17 +102,17 @@ public final class HandUtil {
 
         @Override
         public void setHandCode(List<Integer> combinationCardCodes) {
-            // do nothing
+            // does nothing
         }
 
         @Override
         public void setHandRank(HandRank handRank) {
-            // do nothing
+            // does nothing
         }
 
         @Override
         public void setHandValue(int value) {
-            // do nothing
+            // does nothing
         }
     }
 

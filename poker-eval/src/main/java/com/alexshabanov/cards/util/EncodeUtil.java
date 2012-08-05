@@ -16,6 +16,11 @@ import java.util.List;
  */
 public final class EncodeUtil {
 
+    private EncodeUtil() {}
+
+    /**
+     * Max code of a card. Equals to a size of a deck (52 for poker).
+     */
     public static final int MAX_CARD_CODE = Suit.values().length * Rank.values().length;
 
     public static Rank rankFromCode(int code) {
