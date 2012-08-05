@@ -2,10 +2,14 @@ package com.alexshabanov.cards.model;
 
 import com.alexshabanov.cards.util.PrintUtil;
 
+import java.io.Serializable;
+
 /**
  * Represents a single card.
  */
-public final class Card {
+public final class Card implements Serializable, Comparable<Card> {
+    private static final long serialVersionUID = 1L;
+
     private final Rank rank;
     private final Suit suit;
 
@@ -46,13 +50,25 @@ public final class Card {
 
     @Override
     public int hashCode() {
-        int result = rank != null ? rank.hashCode() : 0;
-        result = 31 * result + (suit != null ? suit.hashCode() : 0);
-        return result;
+        return rank.hashCode() * 31 + suit.hashCode();
     }
 
     @Override
     public String toString() {
         return "[" + PrintUtil.asChar(rank) + PrintUtil.asLatin1Char(suit) + "]";
+    }
+
+    /**
+     * Standard straight comparator: first compares suits, then compares ranks.
+     * {@inheritDoc}
+     */
+    @Override
+    public int compareTo(Card other) {
+        final int suitsCmpRet = this.getSuit().ordinal() - other.getSuit().ordinal();
+        if (suitsCmpRet != 0) {
+            return suitsCmpRet;
+        }
+
+        return this.getRank().ordinal() - other.getRank().ordinal();
     }
 }
