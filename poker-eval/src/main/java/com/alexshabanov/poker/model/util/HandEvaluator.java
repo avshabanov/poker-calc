@@ -6,10 +6,8 @@ import com.alexshabanov.cards.model.Suit;
 import com.alexshabanov.poker.model.Hand;
 import com.alexshabanov.poker.model.HandRank;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import javax.xml.ws.Holder;
+import java.util.*;
 
 /**
  * Hand ranking evaluation utility.
@@ -21,15 +19,32 @@ public final class HandEvaluator {
     public static final int STRAIGHT_FLUSH_HAND_SIZE = 5;
     public static final int FOUR_OF_A_KIND_HAND_SIZE = 4;
     public static final int FULL_HOUSE_HAND_SIZE = 5;
+    public static final int FLUSH_HAND_SIZE = 5;
+    public static final int STRAIGHT_HAND_SIZE = 5;
 
-    private static boolean provideBestHand(List<HandImpl> hands, HandCombinationSink handCombinationSink) {
-        if (hands.isEmpty()) {
+    private static final Map<Rank, Integer> RATING_FLAG_MAP = new HashMap<Rank, Integer>();
+    static {
+        RATING_FLAG_MAP.put(Rank.TWO, 0x00000001);
+        RATING_FLAG_MAP.put(Rank.THREE, 0x00000002);
+        RATING_FLAG_MAP.put(Rank.FOUR, 0x00000004);
+        RATING_FLAG_MAP.put(Rank.FIVE, 0x00000008);
+        RATING_FLAG_MAP.put(Rank.SIX, 0x00000010);
+        RATING_FLAG_MAP.put(Rank.SEVEN, 0x00000020);
+        RATING_FLAG_MAP.put(Rank.EIGHT, 0x00000040);
+        RATING_FLAG_MAP.put(Rank.NINE, 0x00000080);
+        RATING_FLAG_MAP.put(Rank.TEN, 0x00000100);
+        RATING_FLAG_MAP.put(Rank.JACK, 0x00000200);
+        RATING_FLAG_MAP.put(Rank.QUEEN, 0x00000400);
+        RATING_FLAG_MAP.put(Rank.KING, 0x00000800);
+        RATING_FLAG_MAP.put(Rank.ACE, 0x00001000);
+    }
+
+    private static boolean provideBestHand(Holder<Hand> handHolder, HandCombinationSink handCombinationSink) {
+        if (handHolder.value == null) {
             return false;
         }
 
-        // best hand is the last one
-        Collections.sort(hands);
-        handCombinationSink.setBestHand(hands.get(hands.size() - 1));
+        handCombinationSink.setBestHand(handHolder.value);
         return true;
     }
 
@@ -43,7 +58,7 @@ public final class HandEvaluator {
      * @return True, if the straight flush combination has been found in the given cards.
      */
     public static boolean maybeStraightFlush(List<Card> sourceCards, HandCombinationSink handCombinationSink) {
-        final List<HandImpl> hands = new ArrayList<HandImpl>();
+        final Holder<Hand> bestHandHolder = new Holder<Hand>();
 
         CardCombinator.iterate(sourceCards, new CardCombinationCallback() {
             @Override
@@ -79,23 +94,32 @@ public final class HandEvaluator {
                 }
 
                 // ok, this is the straight flush
-                final int rating;
+                int rating = 0;
+                for (final Card card : cards) {
+                    rating |= RATING_FLAG_MAP.get(card.getRank());
+                }
+
                 if (royalFlush) {
                     // Whoa, lucky bastard! Royal flush is on the table! :)
                     // restructure the outcoming cards array so that the ACE will be the last one
                     final Card ace = cards.get(0);
                     cards.remove(0);
                     cards.add(ace);
-                    rating = Rank.KING.ordinal() + 1;
                 } else {
-                    rating = cards.get(cards.size() - 1).getRank().ordinal();
+                    // wheel combination
+                    // the ACE rating considered as lowest one (zero) for straight flush when ACE is a leading card
+                    rating &= ~RATING_FLAG_MAP.get(Rank.ACE);
                 }
-                hands.add(new HandImpl(rating, HandRank.STRAIGHT_FLUSH, cards));
+
+                if (bestHandHolder.value == null || bestHandHolder.value.getRating() < rating) {
+                    bestHandHolder.value = new HandImpl(rating, HandRank.STRAIGHT_FLUSH, cards);
+                }
+
                 return false; // search should continue as there might be multiple flushes per hand
             }
         }, STRAIGHT_FLUSH_HAND_SIZE);
 
-        return provideBestHand(hands, handCombinationSink);
+        return provideBestHand(bestHandHolder, handCombinationSink);
     }
 
     public static boolean maybeFourOfAKind(List<Card> sourceCards, final HandCombinationSink handCombinationSink) {
@@ -121,14 +145,13 @@ public final class HandEvaluator {
     }
 
     public static boolean maybeFullHouse(List<Card> sourceCards, HandCombinationSink handCombinationSink) {
-        final List<HandImpl> hands = new ArrayList<HandImpl>();
+        final Holder<Hand> bestHandHolder = new Holder<Hand>();
 
         CardCombinator.iterate(sourceCards, new CardCombinationCallback() {
             @Override
             public boolean process(List<Card> cards) {
                 Collections.sort(cards, new RankComparator());
 
-                int maxRank = -1;
                 // first two and last two cards must be identical
                 Rank firstRank = cards.get(0).getRank();
                 if (firstRank != cards.get(1).getRank()) {
@@ -145,37 +168,29 @@ public final class HandEvaluator {
                 final int twoCardRankRating;
                 if (midRank == firstRank) {
                     // leading three
-                    threeCardRankRating = getStraightRankRating(firstRank);
-                    twoCardRankRating = getStraightRankRating(lastRank);
+                    threeCardRankRating = RATING_FLAG_MAP.get(firstRank);
+                    twoCardRankRating = RATING_FLAG_MAP.get(lastRank);
                 } else if (midRank == lastRank) {
                     // tailing three
-                    threeCardRankRating = getStraightRankRating(lastRank);
-                    twoCardRankRating = getStraightRankRating(firstRank);
+                    threeCardRankRating = RATING_FLAG_MAP.get(lastRank);
+                    twoCardRankRating = RATING_FLAG_MAP.get(firstRank);
                 } else {
                     return false;
                 }
 
+                final int rating = threeCardRankRating * FULL_HOUSE_THREE_CARD_WEIGHT + twoCardRankRating;
+                if (bestHandHolder.value == null || bestHandHolder.value.getRating() < rating) {
+                    bestHandHolder.value = new HandImpl(rating, HandRank.FULL_HOUSE, cards);
+                }
 
-                hands.add(new HandImpl(threeCardRankRating * FULL_HOUSE_THREE_CARD_WEIGHT + twoCardRankRating,
-                        HandRank.FULL_HOUSE,
-                        cards));
                 return false; // there might be multiple full houses
             }
         }, FULL_HOUSE_HAND_SIZE);
 
-        return provideBestHand(hands, handCombinationSink);
+        return provideBestHand(bestHandHolder, handCombinationSink);
     }
 
-    private static final int FULL_HOUSE_THREE_CARD_WEIGHT = 100;
-
-    private static int getStraightRankRating(Rank rank) {
-        if (rank == Rank.ACE) {
-            return Rank.KING.ordinal() + 1;
-        } else {
-            return rank.ordinal();
-        }
-    }
-
+    private static final int FULL_HOUSE_THREE_CARD_WEIGHT = 0x1000;
 
     /**
      * Card comparator, that takes into an account only the card ranks.
@@ -188,8 +203,169 @@ public final class HandEvaluator {
         }
     }
 
+    public static boolean maybeFlush(List<Card> sourceCards, HandCombinationSink handCombinationSink) {
+        final Holder<Hand> bestHandHolder = new Holder<Hand>();
 
-    private static final class HandImpl implements Hand, Comparable<Hand> {
+        CardCombinator.iterate(sourceCards, new CardCombinationCallback() {
+            @Override
+            public boolean process(List<Card> cards) {
+                Suit suit = null;
+                int rating = 0;
+                for (final Card card : cards) {
+                    if (suit == null) {
+                        suit = card.getSuit();
+                    } else if (card.getSuit() != suit) {
+                        return false;
+                    }
+
+                    rating = rating | RATING_FLAG_MAP.get(card.getRank());
+                }
+                assert suit != null;
+
+                if (bestHandHolder.value == null || bestHandHolder.value.getRating() < rating) {
+                    bestHandHolder.value = new HandImpl(rating, HandRank.FLUSH, cards);
+                }
+
+                return false; // there might be multiple flushes
+            }
+        }, FLUSH_HAND_SIZE);
+
+        return provideBestHand(bestHandHolder, handCombinationSink);
+    }
+
+    public static boolean maybeStraight(List<Card> sourceCards, HandCombinationSink handCombinationSink) {
+        final Holder<Hand> bestHandHolder = new Holder<Hand>();
+
+        CardCombinator.iterate(sourceCards, new CardCombinationCallback() {
+            @Override
+            public boolean process(List<Card> cards) {
+                Collections.sort(cards, new RankComparator());
+
+                int prevRankOrdinal = -1;
+                boolean aceFollowsKing = false;
+                for (final Card card : cards) {
+                    final int newRankOrdinal = card.getRank().ordinal();
+
+                    if (prevRankOrdinal >= 0 && (prevRankOrdinal + 1) != newRankOrdinal) {
+                        // test for combination where ACE follows KING, if so -
+                        // current card (which is second one) should be TEN, last card should be KING
+                        if (prevRankOrdinal != Rank.ACE.ordinal() || card.getRank() != Rank.TEN) {
+                            return false;
+                        }
+
+                        aceFollowsKing = true;
+                    }
+
+                    prevRankOrdinal = newRankOrdinal;
+                }
+
+                // ok, this is the straight
+                int rating = 0;
+                for (final Card card : cards) {
+                    rating |= RATING_FLAG_MAP.get(card.getRank());
+                }
+
+                if (aceFollowsKing) {
+                    final Card ace = cards.get(0);
+                    cards.remove(0);
+                    cards.add(ace);
+                } else {
+                    // wheel combination
+                    // the ACE rating considered as lowest one (zero) for straight flush when ACE is a leading card
+                    rating &= ~RATING_FLAG_MAP.get(Rank.ACE);
+                }
+
+                if (bestHandHolder.value == null || bestHandHolder.value.getRating() < rating) {
+                    bestHandHolder.value = new HandImpl(rating, HandRank.STRAIGHT_FLUSH, cards);
+                }
+
+                return false;
+            }
+        }, STRAIGHT_HAND_SIZE);
+
+        return provideBestHand(bestHandHolder, handCombinationSink);
+    }
+
+    public static boolean maybeThreeOfAKind(List<Card> sourceCards, HandCombinationSink handCombinationSink) {
+        final Holder<Hand> bestHandHolder = new Holder<Hand>();
+
+        CardCombinator.iterate(sourceCards, new CardCombinationCallback() {
+            @Override
+            public boolean process(List<Card> cards) {
+                // TODO: implement
+                return false;
+            }
+        }, -1);
+
+        return provideBestHand(bestHandHolder, handCombinationSink);
+    }
+
+    public static boolean maybePair(List<Card> sourceCards, HandCombinationSink handCombinationSink) {
+        final Holder<Hand> bestHandHolder = new Holder<Hand>();
+
+        CardCombinator.iterate(sourceCards, new CardCombinationCallback() {
+            @Override
+            public boolean process(List<Card> cards) {
+                // TODO: implement
+                return false;
+            }
+        }, -1);
+
+        return provideBestHand(bestHandHolder, handCombinationSink);
+    }
+
+    public static void highCard(List<Card> sourceCards, HandCombinationSink handCombinationSink) {
+        // TODO: implement
+    }
+
+    public static Hand evaluate(List<Card> sourceCards) {
+        final Holder<Hand> handHolder = new Holder<Hand>();
+        final HandCombinationSink handCombinationSink = new HandCombinationSink() {
+            @Override
+            public void setBestHand(Hand hand) {
+                assert handHolder.value == null;
+                handHolder.value = hand;
+            }
+        };
+
+        do {
+            if (maybeStraightFlush(sourceCards, handCombinationSink)) {
+                break;
+            }
+
+            if (maybeFourOfAKind(sourceCards, handCombinationSink)) {
+                break;
+            }
+
+            if (maybeFullHouse(sourceCards, handCombinationSink)) {
+                break;
+            }
+
+            if (maybeFlush(sourceCards, handCombinationSink)) {
+                break;
+            }
+
+            if (maybeStraight(sourceCards, handCombinationSink)) {
+                break;
+            }
+
+            if (maybeThreeOfAKind(sourceCards, handCombinationSink)) {
+                break;
+            }
+
+            if (maybePair(sourceCards, handCombinationSink)) {
+                break;
+            }
+
+            highCard(sourceCards, handCombinationSink);
+        } while (false);
+
+        assert handHolder.value != null;
+        return handHolder.value;
+    }
+
+
+    private static final class HandImpl implements Hand {
         private final List<Card> cards;
         private final HandRank rank;
         private final int rating;
@@ -213,11 +389,6 @@ public final class HandEvaluator {
         @Override
         public int getRating() {
             return rating;
-        }
-
-        @Override
-        public int compareTo(Hand o) {
-            return this.rating - o.getRating();
         }
     }
 }
