@@ -1,20 +1,19 @@
-package com.alexshabanov.poker;
+package com.alexshabanov.sampleapp;
 
-import com.alexshabanov.cards.util.EncodeUtil;
+import com.alexshabanov.cards.model.Card;
 import com.alexshabanov.cards.util.PrintUtil;
 import com.alexshabanov.poker.service.DealerService;
 import com.alexshabanov.poker.service.support.DefaultDealerService;
+import org.junit.Ignore;
 
 import java.util.List;
 
-/**
- * Entry point.
- */
-public final class App {
-    private static void printCards(List<Integer> cards) {
+@Ignore
+public final class DealerSampleApp {
+    private static void printCards(List<Card> cards) {
         System.out.print("Cards:");
-        for (final Integer c : cards) {
-            System.out.print(" " + PrintUtil.asUtfString(EncodeUtil.fromCode(c)));
+        for (final Card c : cards) {
+            System.out.print(" " + PrintUtil.asUtfString(c));
         }
         System.out.println();
     }

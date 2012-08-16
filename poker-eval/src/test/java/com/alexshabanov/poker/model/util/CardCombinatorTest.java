@@ -1,7 +1,7 @@
 package com.alexshabanov.poker.model.util;
 
 import com.alexshabanov.cards.model.Card;
-import com.alexshabanov.cards.util.EncodeUtil;
+import com.alexshabanov.cards.model.DefaultCard;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -14,10 +14,10 @@ import static org.junit.Assert.assertTrue;
 
 public final class CardCombinatorTest {
 
-    private final Card c0 = EncodeUtil.fromCode(0);
-    private final Card c1 = EncodeUtil.fromCode(1);
-    private final Card c2 = EncodeUtil.fromCode(2);
-    private final Card c3 = EncodeUtil.fromCode(3);
+    private final Card c0 = DefaultCard.valueOf(0);
+    private final Card c1 = DefaultCard.valueOf(1);
+    private final Card c2 = DefaultCard.valueOf(2);
+    private final Card c3 = DefaultCard.valueOf(3);
 
     private final List<Card> cards = Arrays.asList(c0, c1, c2, c3);
 

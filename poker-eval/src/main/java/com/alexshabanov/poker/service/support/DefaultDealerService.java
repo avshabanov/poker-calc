@@ -1,13 +1,11 @@
 package com.alexshabanov.poker.service.support;
 
-import com.alexshabanov.cards.util.EncodeUtil;
+import com.alexshabanov.cards.model.Card;
+import com.alexshabanov.cards.model.DefaultCard;
 import com.alexshabanov.poker.service.DealerService;
 
 import java.security.SecureRandom;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 /**
  * Default implementation of {@link DealerService}.
@@ -30,26 +28,19 @@ public final class DefaultDealerService implements DealerService {
     }
 
     @Override
-    public List<Integer> deal() {
-        final Integer[] cards = new Integer[EncodeUtil.MAX_CARD_CODE];
-
-        // initial disposition
-        for (int i = 0; i < cards.length; ++i) {
-            cards[i] = i;
-        }
+    public List<Card> deal() {
+        // create new copy of unsorted deck
+        final List<Card> deck = new ArrayList<Card>(DefaultCard.deck());
 
         // shuffle
         for (int shuffle = 0; shuffle < maxShuffles; ++shuffle) {
-            for (int i = 0; i < cards.length; ++i) {
-                final int newPos = random.nextInt(cards.length);
+            for (int i = 0; i < deck.size(); ++i) {
+                final int newPos = random.nextInt(deck.size());
 
-                // swap cards
-                final int tmpCode = cards[i];
-                cards[i] = cards[newPos];
-                cards[newPos] = tmpCode;
+                Collections.swap(deck, i, newPos);
             }
         }
 
-        return Collections.unmodifiableList(Arrays.asList(cards));
+        return Collections.unmodifiableList(deck);
     }
 }

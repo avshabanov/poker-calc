@@ -1,6 +1,6 @@
 package com.alexshabanov.cards.util;
 
-import com.alexshabanov.cards.model.Card;
+import com.alexshabanov.cards.model.DefaultCard;
 import com.alexshabanov.cards.model.Rank;
 import com.alexshabanov.cards.model.Suit;
 import org.junit.Test;
@@ -13,15 +13,15 @@ public final class ReaderUtilTest {
 
     @Test
     public void testRead() {
-        assertEquals(Arrays.asList(new Card(Suit.CLUBS, Rank.ACE), new Card(Suit.DIAMONDS, Rank.TEN)),
+        assertEquals(Arrays.asList(DefaultCard.valueOf(Suit.CLUBS, Rank.ACE), DefaultCard.valueOf(Suit.DIAMONDS, Rank.TEN)),
                 ReaderUtil.cardsFromLatin1("Ac Td"));
 
         assertEquals(Arrays.asList(
-                new Card(Suit.HEARTS, Rank.TWO),
-                new Card(Suit.CLUBS, Rank.THREE),
-                new Card(Suit.SPADES, Rank.QUEEN),
-                new Card(Suit.DIAMONDS, Rank.JACK),
-                new Card(Suit.DIAMONDS, Rank.ACE)),
+                DefaultCard.valueOf(Suit.HEARTS, Rank.TWO),
+                DefaultCard.valueOf(Suit.CLUBS, Rank.THREE),
+                DefaultCard.valueOf(Suit.SPADES, Rank.QUEEN),
+                DefaultCard.valueOf(Suit.DIAMONDS, Rank.JACK),
+                DefaultCard.valueOf(Suit.DIAMONDS, Rank.ACE)),
                 ReaderUtil.cardsFromLatin1("2h 3c Qs Jd Ad"));
     }
 }

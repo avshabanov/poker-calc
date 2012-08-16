@@ -1,5 +1,6 @@
 package com.alexshabanov.cards.util;
 
+import com.alexshabanov.cards.model.DefaultCard;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -11,8 +12,8 @@ public final class EncodeUtilTest {
 
     @Test
     public void testStraightforwardEncoding() {
-        final List<Integer> cardCodes = new ArrayList<Integer>(EncodeUtil.MAX_CARD_CODE);
-        for (int i = 0; i < EncodeUtil.MAX_CARD_CODE; ++i) {
+        final List<Integer> cardCodes = new ArrayList<Integer>(DefaultCard.MAX_CARD_CODE);
+        for (int i = 0; i < DefaultCard.MAX_CARD_CODE; ++i) {
             cardCodes.add(i);
         }
 
