@@ -183,7 +183,6 @@ public final class HandEvaluatorTest {
             assertEquals(ReaderUtil.cardsFromLatin1("Ac 2h 3c 4d 5s"), combinationCards);
         }
 
-        // royal flush
         {
             final List<Card> sourceCards = ReaderUtil.cardsFromLatin1("2s Ah Ks 7d Js Qs Ts");
             final List<Card> combinationCards = new ArrayList<Card>();
@@ -197,5 +196,20 @@ public final class HandEvaluatorTest {
 
             assertEquals(ReaderUtil.cardsFromLatin1("Ts Js Qs Ks Ah"), combinationCards);
         }
+    }
+
+    @Test
+    public void testPositiveThreeOfAKind() {
+        final List<Card> sourceCards = ReaderUtil.cardsFromLatin1("Qd 3h 9d Qh Jc Qc 5c");
+        final List<Card> combinationCards = new ArrayList<Card>();
+        assertTrue(HandEvaluator.maybeThreeOfAKind(sourceCards, new SimpleHandCombinationSink() {
+            @Override
+            public void setBestHand(Hand hand) {
+                assertEquals(0, combinationCards.size());
+                combinationCards.addAll(hand.getCards());
+            }
+        }));
+
+        assertEquals(ReaderUtil.cardsFromLatin1("Qd Qh Qc"), combinationCards);
     }
 }
