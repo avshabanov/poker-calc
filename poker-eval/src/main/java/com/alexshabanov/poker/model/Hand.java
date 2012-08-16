@@ -5,7 +5,7 @@ import com.alexshabanov.cards.model.Card;
 import java.util.List;
 
 /**
- * Represents player's hand.
+ * Represents player's hand that forms with the player's card and the river opening combination.
  */
 public interface Hand {
 

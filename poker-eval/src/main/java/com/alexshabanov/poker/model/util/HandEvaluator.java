@@ -22,6 +22,8 @@ public final class HandEvaluator {
     public static final int FLUSH_HAND_SIZE = 5;
     public static final int STRAIGHT_HAND_SIZE = 5;
     public static final int THREE_OF_A_KIND_HAND_SIZE = 3;
+    public static final int TWO_PAIRS_HAND_SIZE = 4;
+    public static final int PAIR_HAND_SIZE = 2;
 
     private static final Map<Rank, Integer> RATING_FLAG_MAP = new HashMap<Rank, Integer>();
     static {
@@ -113,7 +115,7 @@ public final class HandEvaluator {
                 }
 
                 if (bestHandHolder.value == null || bestHandHolder.value.getRating() < rating) {
-                    bestHandHolder.value = new HandImpl(rating, HandRank.STRAIGHT_FLUSH, cards);
+                    bestHandHolder.value = new DefaultHand(rating, HandRank.STRAIGHT_FLUSH, cards);
                 }
 
                 return false; // search should continue as there might be multiple flushes per hand
@@ -138,7 +140,7 @@ public final class HandEvaluator {
                 assert rank != null;
 
                 // of, this is the four of a kind
-                handCombinationSink.setBestHand(new HandImpl(rank.ordinal(), HandRank.FOUR_OF_A_KIND, cards));
+                handCombinationSink.setBestHand(new DefaultHand(RATING_FLAG_MAP.get(rank), HandRank.FOUR_OF_A_KIND, cards));
 
                 return true; // the followup search does not make any sense, since only one four-of-a-kind may occur.
             }
@@ -181,7 +183,7 @@ public final class HandEvaluator {
 
                 final int rating = threeCardRankRating * FULL_HOUSE_THREE_CARD_WEIGHT + twoCardRankRating;
                 if (bestHandHolder.value == null || bestHandHolder.value.getRating() < rating) {
-                    bestHandHolder.value = new HandImpl(rating, HandRank.FULL_HOUSE, cards);
+                    bestHandHolder.value = new DefaultHand(rating, HandRank.FULL_HOUSE, cards);
                 }
 
                 return false; // there might be multiple full houses
@@ -224,7 +226,7 @@ public final class HandEvaluator {
                 assert suit != null;
 
                 if (bestHandHolder.value == null || bestHandHolder.value.getRating() < rating) {
-                    bestHandHolder.value = new HandImpl(rating, HandRank.FLUSH, cards);
+                    bestHandHolder.value = new DefaultHand(rating, HandRank.FLUSH, cards);
                 }
 
                 return false; // there might be multiple flushes
@@ -277,7 +279,7 @@ public final class HandEvaluator {
                 }
 
                 if (bestHandHolder.value == null || bestHandHolder.value.getRating() < rating) {
-                    bestHandHolder.value = new HandImpl(rating, HandRank.STRAIGHT, cards);
+                    bestHandHolder.value = new DefaultHand(rating, HandRank.STRAIGHT, cards);
                 }
 
                 return false;
@@ -307,7 +309,7 @@ public final class HandEvaluator {
 
                 final int rating = RATING_FLAG_MAP.get(rank);
                 if (bestHandHolder.value == null || bestHandHolder.value.getRating() < rating) {
-                    bestHandHolder.value = new HandImpl(rating, HandRank.THREE_OF_A_KIND, cards);
+                    bestHandHolder.value = new DefaultHand(rating, HandRank.THREE_OF_A_KIND, cards);
                 }
 
                 return false;
@@ -317,35 +319,74 @@ public final class HandEvaluator {
         return provideBestHand(bestHandHolder, handCombinationSink);
     }
 
+    public static boolean maybeTwoPairs(List<Card> sourceCards, HandCombinationSink handCombinationSink) {
+        final Holder<Hand> bestHandHolder = new Holder<Hand>();
+
+        CardCombinator.iterate(sourceCards, new CardCombinationCallback() {
+            @Override
+            public boolean process(List<Card> cards) {
+                Collections.sort(cards, new RankComparator());
+
+                final Rank rank0 = cards.get(0).getRank();
+                if (rank0 != cards.get(1).getRank()) {
+                    return false;
+                }
+
+                final Rank rank1 = cards.get(2).getRank();
+                if (rank1 != cards.get(3).getRank()) {
+                    return false;
+                }
+
+                final int rating = RATING_FLAG_MAP.get(rank0) | RATING_FLAG_MAP.get(rank1);
+                if (bestHandHolder.value == null || bestHandHolder.value.getRating() < rating) {
+                    bestHandHolder.value = new DefaultHand(rating, HandRank.TWO_PAIRS, cards);
+                }
+
+                return false;
+            }
+        }, TWO_PAIRS_HAND_SIZE);
+
+        return provideBestHand(bestHandHolder, handCombinationSink);
+    }
+
     public static boolean maybePair(List<Card> sourceCards, HandCombinationSink handCombinationSink) {
-        assert sourceCards.size() > 2;
-        final Rank rank = sourceCards.get(0).getRank();
-        if (rank != sourceCards.get(1).getRank()) {
-            return false;
-        }
+        final Holder<Hand> bestHandHolder = new Holder<Hand>();
 
-        handCombinationSink.setBestHand(new HandImpl(RATING_FLAG_MAP.get(rank),
-                HandRank.TWO_PAIRS, sourceCards.subList(0, 2)));
+        CardCombinator.iterate(sourceCards, new CardCombinationCallback() {
+            @Override
+            public boolean process(List<Card> cards) {
+                final Rank rank = cards.get(0).getRank();
+                if (rank != cards.get(1).getRank()) {
+                    return false;
+                }
 
-        return true;
+                final int rating = RATING_FLAG_MAP.get(rank);
+                if (bestHandHolder.value == null || bestHandHolder.value.getRating() < rating) {
+                    bestHandHolder.value = new DefaultHand(rating, HandRank.PAIR, cards);
+                }
 
+                return false;
+            }
+        }, PAIR_HAND_SIZE);
+
+        return provideBestHand(bestHandHolder, handCombinationSink);
+    }
+
+    public static int getPlayerCardsRating(List<Card> sourceCards) {
+        assert sourceCards.size() >= 2;
+
+        // player's card
+        final Card card0 = sourceCards.get(0);
+        final Card card1 = sourceCards.get(1);
+
+        return RATING_FLAG_MAP.get(card0.getRank()) | RATING_FLAG_MAP.get(card1.getRank());
     }
 
     public static void highCard(List<Card> sourceCards, HandCombinationSink handCombinationSink) {
-        assert sourceCards.size() > 2;
-        final int rating0 = RATING_FLAG_MAP.get(sourceCards.get(0).getRank());
-        final int rating1 = RATING_FLAG_MAP.get(sourceCards.get(1).getRank());
-        final Card card;
-        final int rating;
-        if (rating0 > rating1) {
-            card = sourceCards.get(0);
-            rating = rating0;
-        } else {
-            card = sourceCards.get(1);
-            rating = rating1;
-        }
-
-        handCombinationSink.setBestHand(new HandImpl(rating, HandRank.HIGH_CARD, Collections.singletonList(card)));
+        handCombinationSink.setBestHand(new DefaultHand(
+                getPlayerCardsRating(sourceCards),
+                HandRank.HIGH_CARD,
+                sourceCards.subList(0, 2)));
     }
 
     public static Hand evaluate(List<Card> sourceCards) {
@@ -383,6 +424,10 @@ public final class HandEvaluator {
                 break;
             }
 
+            if (maybeTwoPairs(sourceCards, handCombinationSink)) {
+                break;
+            }
+
             if (maybePair(sourceCards, handCombinationSink)) {
                 break;
             }
@@ -392,33 +437,5 @@ public final class HandEvaluator {
 
         assert handHolder.value != null;
         return handHolder.value;
-    }
-
-
-    private static final class HandImpl implements Hand {
-        private final List<Card> cards;
-        private final HandRank rank;
-        private final int rating;
-
-        public HandImpl(int rating, HandRank rank, List<Card> cards) {
-            this.rating = rating;
-            this.rank = rank;
-            this.cards = Collections.unmodifiableList(new ArrayList<Card>(cards));
-        }
-
-        @Override
-        public List<Card> getCards() {
-            return cards;
-        }
-
-        @Override
-        public HandRank getRank() {
-            return rank;
-        }
-
-        @Override
-        public int getRating() {
-            return rating;
-        }
     }
 }
